@@ -53,7 +53,7 @@ jobs:
           for pattern in "${PATTERNS[@]}"; do
             MATCHES=$(grep -rniE -- "$pattern" . \
               --include="*.py" --include="*.js" --include="*.ts" --include="*.json" \
-              --exclude-dir=".git" --exclude-dir=".githooks" 2>/dev/null)
+              --exclude-dir=".git" --exclude-dir=".githooks" 2>/dev/null || true)
             if [ -n "$MATCHES" ]; then
               echo "Secret potentiel détecté :"
               echo "$MATCHES"
