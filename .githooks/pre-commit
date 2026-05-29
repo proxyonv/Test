@@ -39,11 +39,11 @@ for pattern in "${FORBIDDEN_FILES[@]}"; do
   fi
 done
 
-# Scanner le contenu des fichiers stagés
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+# Scanner le contenu des fichiers stagés (hors .githooks/ qui définit les patterns)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -v '^\.githooks/')
 for file in $STAGED_FILES; do
   for pattern in "${SECRET_PATTERNS[@]}"; do
-    MATCH=$(git show ":$file" 2>/dev/null | grep -iE "$pattern" | grep -v "^#" | head -1)
+    MATCH=$(git show ":$file" 2>/dev/null | grep -iE -- "$pattern" | grep -v "^#" | head -1)
     if [ -n "$MATCH" ]; then
       echo "  BLOQUE : pattern suspect dans $file"
       echo "  Ligne  : ${MATCH:0:80}..."
