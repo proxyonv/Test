@@ -1,0 +1,64 @@
+#!/bin/bash
+# Pre-commit hook — bloque les secrets avant chaque commit
+
+ERRORS=0
+
+# Patterns de secrets courants à détecter
+SECRET_PATTERNS=(
+  'password\s*=\s*["\x27][^"\x27]{4,}'
+  'secret\s*=\s*["\x27][^"\x27]{4,}'
+  'api_key\s*=\s*["\x27][^"\x27]{4,}'
+  'token\s*=\s*["\x27][^"\x27]{4,}'
+  '-----BEGIN RSA PRIVATE KEY-----'
+  '-----BEGIN OPENSSH PRIVATE KEY-----'
+  'AKIA[0-9A-Z]{16}'
+  'ghp_[a-zA-Z0-9]{36}'
+  'gho_[a-zA-Z0-9]{36}'
+  'sk-[a-zA-Z0-9]{48}'
+)
+
+# Fichiers à ne jamais commiter
+FORBIDDEN_FILES=(
+  '.env'
+  '*.pem'
+  '*.key'
+  'credentials.json'
+  'token.json'
+  'id_rsa'
+  'id_ed25519'
+)
+
+echo "[pre-commit] Vérification des secrets..."
+
+# Vérifier les fichiers interdits
+for pattern in "${FORBIDDEN_FILES[@]}"; do
+  FILES=$(git diff --cached --name-only | grep -i "$pattern" 2>/dev/null)
+  if [ -n "$FILES" ]; then
+    echo "  BLOQUE : fichier sensible détecté : $FILES"
+    ERRORS=$((ERRORS + 1))
+  fi
+done
+
+# Scanner le contenu des fichiers stagés
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+for file in $STAGED_FILES; do
+  for pattern in "${SECRET_PATTERNS[@]}"; do
+    MATCH=$(git show ":$file" 2>/dev/null | grep -iE "$pattern" | grep -v "^#" | head -1)
+    if [ -n "$MATCH" ]; then
+      echo "  BLOQUE : pattern suspect dans $file"
+      echo "  Ligne  : ${MATCH:0:80}..."
+      ERRORS=$((ERRORS + 1))
+      break
+    fi
+  done
+done
+
+if [ $ERRORS -gt 0 ]; then
+  echo ""
+  echo "[pre-commit] $ERRORS problème(s) détecté(s) — commit annulé."
+  echo "  Pour forcer (déconseillé) : git commit --no-verify"
+  exit 1
+fi
+
+echo "[pre-commit] Aucun secret détecté. OK."
+exit 0

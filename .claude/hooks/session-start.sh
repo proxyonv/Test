@@ -36,6 +36,13 @@ if [ -f "requirements.txt" ]; then
   pip install -q -r requirements.txt 2>/dev/null && echo "Dépendances OK" || echo "Erreur installation dépendances"
 fi
 
+# Activation du hook pre-commit de sécurité
+if [ -d ".githooks" ]; then
+  git config core.hooksPath .githooks
+  chmod +x .githooks/pre-commit 2>/dev/null
+  echo "Hook pre-commit sécurité : actif"
+fi
+
 echo ""
 echo "Prêt."
 echo "======================================"
