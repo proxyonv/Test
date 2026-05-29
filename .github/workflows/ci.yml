@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Tests & Qualité
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Linting (flake8)
+        run: python -m flake8 . --max-line-length=100 --exclude=.venv,build,dist
+
+      - name: Formatage (black)
+        run: python -m black --check . --line-length=100
+
+      - name: Tests (pytest)
+        run: python -m pytest tests/ -v
+
+  security:
+    name: Scan de sécurité
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Détecter les secrets
+        run: |
+          PATTERNS=(
+            'password\s*=\s*["\x27][^"\x27]{4,}'
+            'secret\s*=\s*["\x27][^"\x27]{4,}'
+            'api_key\s*=\s*["\x27][^"\x27]{4,}'
+            'AKIA[0-9A-Z]{16}'
+            'ghp_[a-zA-Z0-9]{36}'
+            'sk-[a-zA-Z0-9]{48}'
+          )
+          ERRORS=0
+          for pattern in "${PATTERNS[@]}"; do
+            MATCHES=$(grep -rniE -- "$pattern" . \
+              --include="*.py" --include="*.js" --include="*.ts" --include="*.json" \
+              --exclude-dir=".git" --exclude-dir=".githooks" 2>/dev/null)
+            if [ -n "$MATCHES" ]; then
+              echo "Secret potentiel détecté :"
+              echo "$MATCHES"
+              ERRORS=$((ERRORS + 1))
+            fi
+          done
+          if [ $ERRORS -gt 0 ]; then
+            echo "::error::$ERRORS secret(s) potentiel(s) détecté(s) — commit bloqué"
+            exit 1
+          fi
+          echo "Aucun secret détecté."
