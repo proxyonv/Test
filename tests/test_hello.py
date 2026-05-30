@@ -14,13 +14,16 @@ def test_hello_empty_string():
     assert hello("") == "Hello, !"
 
 
-@pytest.mark.parametrize("name,expected", [
-    ("Alice", "Hello, Alice!"),
-    ("Bob", "Hello, Bob!"),
-    ("Claude", "Hello, Claude!"),
-    ("123", "Hello, 123!"),
-    ("café", "Hello, café!"),
-])
+@pytest.mark.parametrize(
+    "name,expected",
+    [
+        ("Alice", "Hello, Alice!"),
+        ("Bob", "Hello, Bob!"),
+        ("Claude", "Hello, Claude!"),
+        ("123", "Hello, 123!"),
+        ("café", "Hello, café!"),
+    ],
+)
 def test_hello_parametrize(name, expected):
     assert hello(name) == expected
 
